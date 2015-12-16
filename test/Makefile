@@ -1,17 +1,12 @@
-all: helloworld-dynamic helloworld-static quine-static quine-dynamic
+all: build
 
 
-helloworld-dynamic: helloworld.c
-	docker run --rm -v $(PWD):/workdir multiarch/crossbuild cc $< -o $@
-
-
-helloworld-static: helloworld.c
-	docker run --rm -v $(PWD):/workdir multiarch/crossbuild cc $< -o $@ -static
-
-
-quine-dynamic: quine.c
-	docker run --rm -v $(PWD):/workdir multiarch/crossbuild cc $< -o $@
-
-
-quine-static: quine.c
-	docker run --rm -v $(PWD):/workdir multiarch/crossbuild cc $< -o $@ -static
+build:
+	docker run --rm -v $(PWD):/workdir -e CROSS_TRIPLE=x86_64 multiarch/crossbuild cc helloworld.c -o linux-x86_64-helloworld-dynamic           || true
+	docker run --rm -v $(PWD):/workdir -e CROSS_TRIPLE=x86_64 multiarch/crossbuild cc helloworld.c -o linux-x86_64-helloworld-static -static    || true
+	docker run --rm -v $(PWD):/workdir -e CROSS_TRIPLE=x86_64 multiarch/crossbuild cc quine.c      -o linux-x86_64-quine-dynamic                || true
+	docker run --rm -v $(PWD):/workdir -e CROSS_TRIPLE=x86_64 multiarch/crossbuild cc quine.c      -o linux-x86_64-quine-static -static         || true
+	docker run --rm -v $(PWD):/workdir -e CROSS_TRIPLE=darwin multiarch/crossbuild cc helloworld.c -o darwin-x86_64-helloworld-dynamic          || true
+	docker run --rm -v $(PWD):/workdir -e CROSS_TRIPLE=darwin multiarch/crossbuild cc helloworld.c -o darwin-x86_64-helloworld-static -static   || true
+	docker run --rm -v $(PWD):/workdir -e CROSS_TRIPLE-darwin multiarch/crossbuild cc quine.c      -o darwin-x86_64-quine-dynamic               || true
+	docker run --rm -v $(PWD):/workdir -e CROSS_TRIPLE=darwin multiarch/crossbuild cc quine.c      -o darwin-x86_64-quine-static -static        || true

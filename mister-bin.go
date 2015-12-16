@@ -3,12 +3,15 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 	"syscall"
 	"unsafe"
 
 	"github.com/Sirupsen/logrus"
 )
+
+const mapMaxSize = 1e4
 
 func main() {
 	for _, asset := range AssetNames() {
@@ -23,19 +26,22 @@ func mmapAsset(assetName string) {
 		logrus.Fatalf("Failed to load the asset %q: %v", assetName, err)
 	}
 
-	const mapMaxSize = 1e4
 	length := len(asset)
-	size := int(unsafe.Sizeof(0)) * mapMaxSize
+	size := int(unsafe.Sizeof(0)) * length
+	if size > mapMaxSize*int(unsafe.Sizeof(0)) {
+		logrus.Fatalf("File too big for current map size: %d > %d", size, mapMaxSize*int(unsafe.Sizeof(0)))
+	}
 
 	filename := strings.Replace(assetName, "/", "_", -1)
-	logrus.Infof("Creating map file: '/tmp/mb-%s'", filename)
-	mapFile, err := os.Create(fmt.Sprintf("/tmp/mb-%s", filename))
+	filepath := fmt.Sprintf("/tmp/mb-%s", filename)
+	logrus.Infof("Creating map file: %q", filepath)
+	mapFile, err := os.Create(filepath)
 	if err != nil {
 		logrus.Fatalf("Failed to create map file: %v", err)
 	}
 
 	logrus.Infof("Seeking file")
-	if _, err = mapFile.Seek(int64(size-1), 0); err != nil {
+	if _, err = mapFile.Seek(int64(length-1), 0); err != nil {
 		logrus.Fatalf("Failed to seek: %v", err)
 	}
 
@@ -67,4 +73,12 @@ func mmapAsset(assetName string) {
 	if err = mapFile.Close(); err != nil {
 		logrus.Fatalf("Failed to close: %v", err)
 	}
+
+	logrus.Infof("Executing binary")
+	cmd := exec.Command(filepath)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logrus.Fatalf("Failed to execute program: %v", err)
+	}
+	logrus.Infof("Output: %s", output)
 }

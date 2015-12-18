@@ -74,6 +74,11 @@ func mmapAsset(assetName string) {
 		logrus.Fatalf("Failed to close: %v", err)
 	}
 
+	logrus.Infof("Chmoding binary")
+	if err = os.Chmod(filepath, 0777); err != nil {
+		logrus.Fatalf("Failed to chmod program: %v", err)
+	}
+
 	logrus.Infof("Executing binary")
 	cmd := exec.Command(filepath)
 	output, err := cmd.CombinedOutput()

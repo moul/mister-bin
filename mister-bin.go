@@ -13,9 +13,31 @@ import (
 
 const mapMaxSize = 1e4
 
+type Binary struct {
+	Asset []byte
+	Name  string
+}
+
+func NewBinary(name string) Binary {
+	return Binary{
+		Name: name,
+	}
+}
+
+func (b *Binary) Setup() error {
+	mmapAsset(b.Name)
+	return nil
+}
+
+func (b *Binary) Execute() error {
+	return nil
+}
+
 func main() {
-	for _, asset := range AssetNames() {
-		mmapAsset(asset)
+	for _, name := range AssetNames() {
+		bin := NewBinary(name)
+		bin.Setup()
+		bin.Execute()
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 	"unsafe"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/codegangsta/cli"
 )
 
 const mapMaxSize = 1e4
@@ -105,13 +106,39 @@ func (b *Binary) Execute() error {
 }
 
 func main() {
-	for _, name := range AssetNames() {
-		bin := NewBinary(name)
-		if err := bin.Setup(); err != nil {
-			logrus.Fatalf("Failed to setup binary: %v", err)
-		}
-		if err := bin.Execute(); err != nil {
-			logrus.Fatalf("Failed to execute binary: %v", err)
-		}
+	app := cli.NewApp()
+	app.Name = "Mister Bin"
+
+	app.Commands = []cli.Command{
+		{
+			Name: "install",
+			Action: func(c *cli.Context) {
+				for _, name := range AssetNames() {
+					bin := NewBinary(name)
+					if err := bin.Setup(); err != nil {
+						logrus.Fatalf("Failed to setup binary: %v", err)
+					}
+				}
+			},
+		},
 	}
+
+	for _, name := range AssetNames() {
+		command := cli.Command{
+			Name: name,
+			Action: func(c *cli.Context) {
+				fmt.Println(c.Command.Name)
+				bin := NewBinary(c.Command.Name)
+				if err := bin.Setup(); err != nil {
+					logrus.Fatalf("Failed to setup binary: %v", err)
+				}
+				if err := bin.Execute(); err != nil {
+					logrus.Fatalf("Failed to execute binary: %v", err)
+				}
+			},
+		}
+		app.Commands = append(app.Commands, command)
+	}
+
+	app.Run(os.Args)
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"unsafe"
@@ -105,37 +106,56 @@ func (b *Binary) Execute() error {
 	return nil
 }
 
+func GetBinaryByName(name string) (*Binary, error) {
+	for _, assetName := range AssetNames() {
+		if name == assetName {
+			bin := NewBinary(assetName)
+			return &bin, nil
+		}
+	}
+	for _, assetName := range AssetNames() {
+		if name == filepath.Base(assetName) {
+			bin := NewBinary(assetName)
+			return &bin, nil
+		}
+	}
+	return nil, fmt.Errorf("No match")
+}
+
+func ActionExecute(c *cli.Context) {
+	bin, err := GetBinaryByName(c.Command.Name)
+	if err != nil {
+		logrus.Fatalf("No such binary %q: %v", c.Command.Name, err)
+	}
+	if err := bin.Execute(); err != nil {
+		logrus.Fatalf("Failed to execute binary: %v", err)
+	}
+}
+
+func ActionInstall(c *cli.Context) {
+	for _, name := range AssetNames() {
+		bin := NewBinary(name)
+		if err := bin.Setup(); err != nil {
+			logrus.Fatalf("Failed to setup binary: %v", err)
+		}
+	}
+}
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "Mister Bin"
 
 	app.Commands = []cli.Command{
 		{
-			Name: "install",
-			Action: func(c *cli.Context) {
-				for _, name := range AssetNames() {
-					bin := NewBinary(name)
-					if err := bin.Setup(); err != nil {
-						logrus.Fatalf("Failed to setup binary: %v", err)
-					}
-				}
-			},
+			Name:   "install",
+			Action: ActionInstall,
 		},
 	}
 
 	for _, name := range AssetNames() {
 		command := cli.Command{
-			Name: name,
-			Action: func(c *cli.Context) {
-				fmt.Println(c.Command.Name)
-				bin := NewBinary(c.Command.Name)
-				if err := bin.Setup(); err != nil {
-					logrus.Fatalf("Failed to setup binary: %v", err)
-				}
-				if err := bin.Execute(); err != nil {
-					logrus.Fatalf("Failed to execute binary: %v", err)
-				}
-			},
+			Name:   filepath.Base(name),
+			Action: ActionExecute,
 		}
 		app.Commands = append(app.Commands, command)
 	}

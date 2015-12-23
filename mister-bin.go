@@ -171,15 +171,24 @@ func ActionExecute(c *cli.Context) {
 	if err != nil {
 		logrus.Fatalf("No such binary %q: %v", c.Command.Name, err)
 	}
+	binaryUseContext(&bin, c)
 
 	if err := bin.Execute(c.Args()); err != nil {
 		logrus.Fatalf("Failed to execute binary: %v", err)
 	}
 }
 
+func binaryUseContext(bin *Binary, context *cli.Context) {
+	if basedir := context.Parent().String("basedir"); basedir != "" {
+		bin.BaseDir = basedir
+	}
+}
+
 func ActionInstall(c *cli.Context) {
 	for _, name := range AssetNames() {
 		bin := NewBinary(name)
+		binaryUseContext(&bin, c)
+
 		if err := bin.Install(bin.FilePath()); err != nil {
 			logrus.Fatalf("Failed to install binary: %v", err)
 		}
@@ -188,6 +197,8 @@ func ActionInstall(c *cli.Context) {
 func ActionUninstall(c *cli.Context) {
 	for _, name := range AssetNames() {
 		bin := NewBinary(name)
+		binaryUseContext(&bin, c)
+
 		if err := bin.Uninstall(bin.FilePath()); err != nil {
 			logrus.Fatalf("Failed to uninstall binary: %v", err)
 		}
@@ -239,6 +250,11 @@ func main() {
 		cli.BoolFlag{
 			Name:   "debug, D",
 			EnvVar: "MB_DEBUG",
+		},
+	}
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name: "basedir",
 		},
 	}
 

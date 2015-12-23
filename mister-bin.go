@@ -123,9 +123,12 @@ func (b *Binary) Install(filepath string) error {
 	return nil
 }
 
-func (b *Binary) Execute() error {
+func (b *Binary) Execute(args []string) error {
 	filepath := b.TempPath()
 	logrus.Infof("Executing binary %q (%s)", b.Name, filepath)
+	if len(args) > 0 {
+		logrus.Infof("args=%v", args)
+	}
 
 	// temporary
 	if err := b.Uninstall(filepath); err != nil {
@@ -138,7 +141,7 @@ func (b *Binary) Execute() error {
 	// FIXME: delete early
 	defer b.Uninstall(filepath)
 
-	cmd := exec.Command(filepath)
+	cmd := exec.Command(filepath, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
@@ -169,7 +172,7 @@ func ActionExecute(c *cli.Context) {
 		logrus.Fatalf("No such binary %q: %v", c.Command.Name, err)
 	}
 
-	if err := bin.Execute(); err != nil {
+	if err := bin.Execute(c.Args()); err != nil {
 		logrus.Fatalf("Failed to execute binary: %v", err)
 	}
 }
@@ -222,7 +225,7 @@ func main() {
 			logrus.Fatalf("No such binary %q: %v", filepath.Base(os.Args[0]), err)
 		}
 
-		if err := bin.Execute(); err != nil {
+		if err := bin.Execute(os.Args[1:]); err != nil {
 			logrus.Fatalf("Failed to execute binary: %v", err)
 		}
 		return

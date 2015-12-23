@@ -16,13 +16,19 @@ import (
 const mapMaxSize = 1e4
 
 type Binary struct {
-	Asset []byte
-	Name  string
+	Asset   []byte
+	Name    string
+	BaseDir string
 }
 
 func NewBinary(name string) Binary {
+	wd, err := os.Getwd()
+	if err != nil {
+		wd = "/"
+	}
 	return Binary{
-		Name: name,
+		Name:    name,
+		BaseDir: wd,
 	}
 }
 
@@ -31,12 +37,12 @@ func (b *Binary) FileName() string {
 }
 
 func (b *Binary) FilePath() string {
-	return fmt.Sprintf("/tmp/mb-%s", b.FileName())
+	return filepath.Join(b.BaseDir, b.FileName())
 }
 
 func (b *Binary) TempPath() string {
-	// FIXME: get temporary filepath, in memory if possible
-	return fmt.Sprintf("/tmp/temp-%s", b.FileName())
+	// FIXME: ensure using memory instead of disk if p ossible
+	return filepath.Join(os.TempDir(), b.FileName())
 }
 
 func (b *Binary) Uninstall(filepath string) error {

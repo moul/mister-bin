@@ -34,8 +34,25 @@ func (b *Binary) FilePath() string {
 	return fmt.Sprintf("/tmp/mb-%s", b.FileName())
 }
 
-func (b *Binary) Setup() error {
-	logrus.Infof("Exporting asset: %s", b.Name)
+func (b *Binary) Uninstall() error {
+	logrus.Infof("Uninstalling asset: %s", b.Name)
+
+	if _, err := os.Stat(b.FilePath()); os.IsNotExist(err) {
+		logrus.Warnf("Asset %q not installed, nothing to do", b.FilePath())
+		return nil
+	}
+
+	return os.Remove(b.FilePath())
+}
+
+func (b *Binary) Install() error {
+	logrus.Infof("Installing asset: %q", b.FilePath())
+
+	if _, err := os.Stat(b.FilePath()); !os.IsNotExist(err) {
+		logrus.Warnf("Asset already installed: %q", b.FilePath())
+		return nil
+	}
+
 	asset, err := Asset(b.Name)
 	if err != nil {
 		return fmt.Errorf("failed to load the asset %q: %v", b.Name, err)
@@ -135,8 +152,16 @@ func ActionExecute(c *cli.Context) {
 func ActionInstall(c *cli.Context) {
 	for _, name := range AssetNames() {
 		bin := NewBinary(name)
-		if err := bin.Setup(); err != nil {
-			logrus.Fatalf("Failed to setup binary: %v", err)
+		if err := bin.Install(); err != nil {
+			logrus.Fatalf("Failed to install binary: %v", err)
+		}
+	}
+}
+func ActionUninstall(c *cli.Context) {
+	for _, name := range AssetNames() {
+		bin := NewBinary(name)
+		if err := bin.Uninstall(); err != nil {
+			logrus.Fatalf("Failed to uninstall binary: %v", err)
 		}
 	}
 }
@@ -149,6 +174,10 @@ func main() {
 		{
 			Name:   "install",
 			Action: ActionInstall,
+		},
+		{
+			Name:   "uninstall",
+			Action: ActionUninstall,
 		},
 	}
 

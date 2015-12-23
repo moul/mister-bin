@@ -34,22 +34,27 @@ func (b *Binary) FilePath() string {
 	return fmt.Sprintf("/tmp/mb-%s", b.FileName())
 }
 
-func (b *Binary) Uninstall() error {
-	logrus.Infof("Uninstalling asset: %s", b.Name)
+func (b *Binary) TempPath() string {
+	// FIXME: get temporary filepath, in memory if possible
+	return fmt.Sprintf("/tmp/temp-%s", b.FileName())
+}
 
-	if _, err := os.Stat(b.FilePath()); os.IsNotExist(err) {
-		logrus.Warnf("Asset %q not installed, nothing to do", b.FilePath())
+func (b *Binary) Uninstall(filepath string) error {
+	logrus.Infof("Uninstalling binary %q (%s)", b.Name, filepath)
+
+	if _, err := os.Stat(filepath); os.IsNotExist(err) {
+		logrus.Debugf("Asset %q not installed, nothing to do", filepath)
 		return nil
 	}
 
-	return os.Remove(b.FilePath())
+	return os.Remove(filepath)
 }
 
-func (b *Binary) Install() error {
-	logrus.Infof("Installing asset: %q", b.FilePath())
+func (b *Binary) Install(filepath string) error {
+	logrus.Infof("Installing binary %q (%s)", b.Name, filepath)
 
-	if _, err := os.Stat(b.FilePath()); !os.IsNotExist(err) {
-		logrus.Warnf("Asset already installed: %q", b.FilePath())
+	if _, err := os.Stat(filepath); !os.IsNotExist(err) {
+		logrus.Debugf("Asset already installed: %q", filepath)
 		return nil
 	}
 
@@ -64,48 +69,48 @@ func (b *Binary) Install() error {
 		return fmt.Errorf("file too big for current map size: %d > %d", size, mapMaxSize*int(unsafe.Sizeof(0)))
 	}
 
-	logrus.Infof("Creating map file: %q", b.FilePath())
-	mapFile, err := os.Create(b.FilePath())
+	logrus.Debugf("Creating map file: %q", filepath)
+	mapFile, err := os.Create(filepath)
 	if err != nil {
 		return fmt.Errorf("failed to create map file: %v", err)
 	}
 
-	logrus.Infof("Seeking file")
+	logrus.Debugf("Seeking file")
 	if _, err = mapFile.Seek(int64(length-1), 0); err != nil {
 		return fmt.Errorf("failed to seek: %v", err)
 	}
 
-	logrus.Infof("Writing to file")
+	logrus.Debugf("Writing to file")
 	if _, err = mapFile.Write([]byte(" ")); err != nil {
 		return fmt.Errorf("failed to write to file: %v", err)
 	}
 
-	logrus.Infof("MMAPing")
+	logrus.Debugf("MMAPing")
 	fd := int(mapFile.Fd())
 	mmap, err := syscall.Mmap(fd, 0, size, syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
 	if err != nil {
 		return fmt.Errorf("failed to mmap: %v", err)
 	}
 
-	logrus.Infof("Filling array var")
+	logrus.Debugf("Filling array var")
 	mapArray := (*[mapMaxSize]byte)(unsafe.Pointer(&mmap[0]))
 	for i := 0; i < length; i++ {
 		mapArray[i] = asset[i]
 	}
 	// fmt.Println(*mapArray)
 
-	logrus.Infof("MUNMAPing")
+	logrus.Debugf("MUNMAPing")
 	if err = syscall.Munmap(mmap); err != nil {
 		return fmt.Errorf("failed to munmap: %v", err)
 	}
 
-	logrus.Infof("Closing")
+	logrus.Debugf("Closing")
 	if err = mapFile.Close(); err != nil {
 		return fmt.Errorf("failed to close: %v", err)
 	}
 
-	logrus.Infof("Chmoding binary")
-	if err = os.Chmod(b.FilePath(), 0777); err != nil {
+	logrus.Debugf("Chmoding binary")
+	if err = os.Chmod(filepath, 0777); err != nil {
 		return fmt.Errorf("failed to chmod program: %v", err)
 	}
 
@@ -113,14 +118,27 @@ func (b *Binary) Install() error {
 }
 
 func (b *Binary) Execute() error {
-	logrus.Infof("Executing binary")
-	cmd := exec.Command(b.FilePath())
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("failed to execute program: %v", err)
+	filepath := b.TempPath()
+	logrus.Infof("Executing binary %q (%s)", b.Name, filepath)
+
+	// temporary
+	if err := b.Uninstall(filepath); err != nil {
+		logrus.Debugf("Failed to uninstall temporary binary %q: %v", filepath, err)
 	}
-	logrus.Infof("Output: %s", output)
-	return nil
+
+	if err := b.Install(filepath); err != nil {
+		return err
+	}
+	// FIXME: delete early
+	defer b.Uninstall(filepath)
+
+	cmd := exec.Command(filepath)
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
+	cmd.Start()
+
+	return cmd.Wait()
 }
 
 func GetBinaryByName(name string) (*Binary, error) {
@@ -144,6 +162,7 @@ func ActionExecute(c *cli.Context) {
 	if err != nil {
 		logrus.Fatalf("No such binary %q: %v", c.Command.Name, err)
 	}
+
 	if err := bin.Execute(); err != nil {
 		logrus.Fatalf("Failed to execute binary: %v", err)
 	}
@@ -152,7 +171,7 @@ func ActionExecute(c *cli.Context) {
 func ActionInstall(c *cli.Context) {
 	for _, name := range AssetNames() {
 		bin := NewBinary(name)
-		if err := bin.Install(); err != nil {
+		if err := bin.Install(bin.FilePath()); err != nil {
 			logrus.Fatalf("Failed to install binary: %v", err)
 		}
 	}
@@ -160,7 +179,7 @@ func ActionInstall(c *cli.Context) {
 func ActionUninstall(c *cli.Context) {
 	for _, name := range AssetNames() {
 		bin := NewBinary(name)
-		if err := bin.Uninstall(); err != nil {
+		if err := bin.Uninstall(bin.FilePath()); err != nil {
 			logrus.Fatalf("Failed to uninstall binary: %v", err)
 		}
 	}

@@ -191,10 +191,23 @@ func ActionUninstall(c *cli.Context) {
 	}
 }
 
-func main() {
-	// Configure Logrus
-	logrus.SetLevel(logrus.WarnLevel)
+func hookBefore(c *cli.Context) error {
+	if c.Bool("debug") {
+		os.Setenv("MB_DEBUG", "1")
+	}
+	initLogging()
+	return nil
+}
 
+func initLogging() {
+	if os.Getenv("MB_DEBUG") == "1" {
+		logrus.SetLevel(logrus.DebugLevel)
+	} else {
+		logrus.SetLevel(logrus.WarnLevel)
+	}
+}
+
+func main() {
 	// Checking if file is a symlink to mister-bin or mister-bin itself
 	fi, err := os.Lstat(os.Args[0])
 	if err != nil {
@@ -203,6 +216,7 @@ func main() {
 
 	// we are a symlink, direct execution
 	if fi.Mode()&os.ModeSymlink == os.ModeSymlink {
+		initLogging()
 		bin, err := GetBinaryByName(filepath.Base(os.Args[0]))
 		if err != nil {
 			logrus.Fatalf("No such binary %q: %v", filepath.Base(os.Args[0]), err)
@@ -217,6 +231,15 @@ func main() {
 	// we are not a symlink, standard menu
 	app := cli.NewApp()
 	app.Name = "Mister Bin"
+
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:   "debug, D",
+			EnvVar: "MB_DEBUG",
+		},
+	}
+
+	app.Before = hookBefore
 
 	app.Commands = []cli.Command{
 		{

@@ -192,6 +192,29 @@ func ActionUninstall(c *cli.Context) {
 }
 
 func main() {
+	// Configure Logrus
+	logrus.SetLevel(logrus.WarnLevel)
+
+	// Checking if file is a symlink to mister-bin or mister-bin itself
+	fi, err := os.Lstat(os.Args[0])
+	if err != nil {
+		logrus.Fatalf("Failed to lstat %q: %v", os.Args[0], err)
+	}
+
+	// we are a symlink, direct execution
+	if fi.Mode()&os.ModeSymlink == os.ModeSymlink {
+		bin, err := GetBinaryByName(filepath.Base(os.Args[0]))
+		if err != nil {
+			logrus.Fatalf("No such binary %q: %v", filepath.Base(os.Args[0]), err)
+		}
+
+		if err := bin.Execute(); err != nil {
+			logrus.Fatalf("Failed to execute binary: %v", err)
+		}
+		return
+	}
+
+	// we are not a symlink, standard menu
 	app := cli.NewApp()
 	app.Name = "Mister Bin"
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -15,10 +16,16 @@ import (
 
 const mapMaxSize = 1e4
 
+const (
+	InstallBinary = iota
+	InstallSymlink
+)
+
 type Binary struct {
-	Asset   []byte
-	Name    string
-	BaseDir string
+	Asset         []byte
+	Name          string
+	BaseDir       string
+	InstallMethod int
 }
 
 func NewBinary(name string) Binary {
@@ -27,13 +34,18 @@ func NewBinary(name string) Binary {
 		wd = "/"
 	}
 	return Binary{
-		Name:    name,
-		BaseDir: wd,
+		Name:          name,
+		BaseDir:       wd,
+		InstallMethod: InstallBinary,
 	}
 }
 
-func (b *Binary) FileName() string {
+func (b *Binary) FullPathFileName() string {
 	return strings.Replace(b.Name, "/", "_", -1)
+}
+
+func (b *Binary) FileName() string {
+	return path.Base(b.Name)
 }
 
 func (b *Binary) FilePath() string {
@@ -57,6 +69,25 @@ func (b *Binary) Uninstall(filepath string) error {
 }
 
 func (b *Binary) Install(filepath string) error {
+	switch b.InstallMethod {
+	case InstallBinary:
+		return b.InstallBinary(filepath)
+	case InstallSymlink:
+		return b.InstallSymlink(filepath)
+	}
+	return fmt.Errorf("Invalid install method")
+}
+
+func (b *Binary) InstallSymlink(installPath string) error {
+	logrus.Infof("Installing symlink %q (%s)", b.Name, installPath)
+	misterBinPath, err := filepath.Abs(os.Args[0])
+	if err != nil {
+		return err
+	}
+	return os.Symlink(misterBinPath, installPath)
+}
+
+func (b *Binary) InstallBinary(filepath string) error {
 	logrus.Infof("Installing binary %q (%s)", b.Name, filepath)
 
 	if _, err := os.Stat(filepath); !os.IsNotExist(err) {
@@ -171,7 +202,7 @@ func ActionExecute(c *cli.Context) {
 	if err != nil {
 		logrus.Fatalf("No such binary %q: %v", c.Command.Name, err)
 	}
-	binaryUseContext(&bin, c)
+	binaryUseContext(bin, c)
 
 	if err := bin.Execute(c.Args()); err != nil {
 		logrus.Fatalf("Failed to execute binary: %v", err)
@@ -181,6 +212,12 @@ func ActionExecute(c *cli.Context) {
 func binaryUseContext(bin *Binary, context *cli.Context) {
 	if basedir := context.Parent().String("basedir"); basedir != "" {
 		bin.BaseDir = basedir
+	}
+	if basedir := context.String("basedir"); basedir != "" {
+		bin.BaseDir = basedir
+	}
+	if symlinks := context.Bool("symlinks"); symlinks {
+		bin.InstallMethod = InstallSymlink
 	}
 }
 
@@ -252,11 +289,6 @@ func main() {
 			EnvVar: "MB_DEBUG",
 		},
 	}
-	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name: "basedir",
-		},
-	}
 
 	app.Before = hookBefore
 
@@ -264,10 +296,26 @@ func main() {
 		{
 			Name:   "install",
 			Action: ActionInstall,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "basedir",
+					Usage: "Base dir to install binaries to",
+				},
+				cli.BoolFlag{
+					Name:  "symlinks",
+					Usage: " Create symlinks instead of real binaries",
+				},
+			},
 		},
 		{
 			Name:   "uninstall",
 			Action: ActionUninstall,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "basedir",
+					Usage: "Base dir to uninstall binaries from",
+				},
+			},
 		},
 	}
 

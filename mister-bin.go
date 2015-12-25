@@ -14,7 +14,7 @@ import (
 	"github.com/codegangsta/cli"
 )
 
-const mapMaxSize = 1e4
+const mapMaxSize = 1e8
 
 const (
 	InstallBinary = iota
@@ -57,23 +57,24 @@ func (b *Binary) TempPath() string {
 	return filepath.Join(os.TempDir(), b.FileName())
 }
 
-func (b *Binary) Uninstall(filepath string) error {
-	logrus.Infof("Uninstalling binary %q (%s)", b.Name, filepath)
+func (b *Binary) Uninstall(installPath string) error {
+	logrus.Infof("Uninstalling binary %q (%s)", b.Name, installPath)
 
-	if _, err := os.Stat(filepath); os.IsNotExist(err) {
-		logrus.Debugf("Asset %q not installed, nothing to do", filepath)
+	if _, err := os.Stat(installPath); os.IsNotExist(err) {
+		logrus.Debugf("Asset %q not installed, nothing to do", installPath)
 		return nil
 	}
 
-	return os.Remove(filepath)
+	return os.Remove(installPath)
 }
 
-func (b *Binary) Install(filepath string) error {
+func (b *Binary) Install(installPath string) error {
+	os.MkdirAll(filepath.Dir(installPath), 0700)
 	switch b.InstallMethod {
 	case InstallBinary:
-		return b.InstallBinary(filepath)
+		return b.InstallBinary(installPath)
 	case InstallSymlink:
-		return b.InstallSymlink(filepath)
+		return b.InstallSymlink(installPath)
 	}
 	return fmt.Errorf("Invalid install method")
 }
@@ -259,6 +260,23 @@ func initLogging() {
 }
 
 func main() {
+	if os.Args[0] == "/bin/sh" && len(os.Args) > 1 && os.Args[1] == "-c" {
+		// mister-bin is called as /bin/sh, probably from a 'FROM scratch' Docker image
+
+		args := strings.Split(os.Args[2], " ")
+		// FIXME: add a basic shell support
+
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Stdout = os.Stdout
+		cmd.Stdin = os.Stdin
+		cmd.Stderr = os.Stderr
+
+		if err := cmd.Run(); err != nil {
+			logrus.Fatalf("/bin/sh: failed to execute sub command %q: %v", args, err)
+		}
+		return
+	}
+
 	// Checking if file is a symlink to mister-bin or mister-bin itself
 	fi, err := os.Lstat(os.Args[0])
 	if err != nil {

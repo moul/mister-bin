@@ -1,20 +1,40 @@
+#BINARY = ./test/darwin-x86_64-helloworld-dynamic
+BINARY = ./test/linux-x86_64-helloworld-static
+
+
+.PHONY: build
 build: mister-bin
 
-./test/darwin-x86_64-helloworld-dynamic:
+
+$(BINARY):
 	cd test; $(MAKE)
 
-bindata.go: ./test/darwin-x86_64-helloworld-dynamic
+
+bindata.go: $(BINARY)
 	go get github.com/jteeuwen/go-bindata/...
-	go-bindata ./test/darwin-x86_64-helloworld-dynamic
+	go-bindata $(BINARY)
+
 
 mister-bin: mister-bin.go bindata.go
 	go build -o mister-bin .
 
-test: mister-bin
-	./mister-bin
-	ls -la /tmp/mb-test_darwin-x86_64-helloworld-dynamic test/darwin-x86_64-helloworld-dynamic
-	/tmp/mb-test_darwin-x86_64-helloworld-dynamic
-	./test/darwin-x86_64-helloworld-dynamic
 
+.PHONY: test
+test: mister-bin
+	./mister-bin -h || true
+	./mister-bin $(BINARY)
+
+
+.PHONY: docker
+docker: docker/mister-bin docker/Dockerfile
+	docker build --no-cache -t mister-bin docker
+	docker run -it --rm mister-bin /bin/$(notdir $(BINARY))
+
+
+docker/mister-bin: mister-bin.go bindata.go
+	goxc -bc="linux,386" -d=docker -o="{{.Dest}}{{.PS}}{{.ExeName}}{{.Ext}}" -include="" compile
+
+
+.PHONY: clean
 clean:
-	rm -f /tmp/mb-test_darwin-x86_64-helloworld-dynamic
+	./mister-bin --uninstall

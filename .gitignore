@@ -4,6 +4,9 @@ mister-bin
 # go-bindata
 bindata.go
 
+# docker
+/docker/snapshot
+
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
 *.o
 *.a

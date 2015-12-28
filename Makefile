@@ -22,13 +22,14 @@ mister-bin: mister-bin.go bindata.go
 .PHONY: test
 test: mister-bin
 	./mister-bin -h || true
-	./mister-bin $(BINARY)
+	./mister-bin $(notdir $(BINARY))
 
 
 .PHONY: docker
 docker: docker/mister-bin docker/Dockerfile
 	docker build --no-cache -t mister-bin docker
 	docker run -it --rm mister-bin /bin/$(notdir $(BINARY))
+	docker export `docker create mister-bin /dont-exists` | tar -tvf -
 
 
 docker/mister-bin: mister-bin.go bindata.go

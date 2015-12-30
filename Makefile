@@ -1,10 +1,21 @@
 #BINARY = ./test/darwin-x86_64-helloworld-dynamic
 BINARY = ./test/linux-x86_64-helloworld-static
 MISTERBIN_DIR = ./misterbin
+MISTERBUILD_DIR = ./misterbuild
 
 
 .PHONY: build
-build: mister-bin
+build: builder mister-bin
+
+
+builder: $(MISTERBUILD_DIR)/mister-build.go $(MISTERBUILD_DIR)/bindata.go
+	go build -o ./$@ ./$(MISTERBUILD_DIR)
+
+
+$(MISTERBUILD_DIR)/bindata.go: $(MISTERBIN_DIR)/mister-bin.go
+	go get github.com/jteeuwen/go-bindata/...
+	go-bindata -nocompress -o ./$@ $<
+	ls -la $@
 
 
 $(BINARY):
@@ -14,10 +25,11 @@ $(BINARY):
 $(MISTERBIN_DIR)/bindata.go: $(BINARY)
 	go get github.com/jteeuwen/go-bindata/...
 	go-bindata -o ./$@ $(BINARY)
+	ls -la $@
 
 
 mister-bin: $(MISTERBIN_DIR)/mister-bin.go $(MISTERBIN_DIR)/bindata.go
-	go build -o ./mister-bin ./$(MISTERBIN_DIR)
+	go build -o ./$@ ./$(MISTERBIN_DIR)
 
 
 .PHONY: test

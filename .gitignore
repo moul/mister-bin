@@ -1,8 +1,9 @@
 # Binary
 mister-bin
+builder
 
 # go-bindata
-bindata.go
+misterbin/bindata.go
 
 # docker
 /docker/snapshot

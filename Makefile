@@ -14,7 +14,7 @@ builder: $(MISTERBUILD_DIR)/mister-build.go $(MISTERBUILD_DIR)/bindata.go
 
 $(MISTERBUILD_DIR)/bindata.go: $(MISTERBIN_DIR)/mister-bin.go
 	go get github.com/jteeuwen/go-bindata/...
-	go-bindata -nocompress -o ./$@ $<
+	go-bindata -prefix=$(dir $<) -nocompress -o ./$@ $<
 	ls -la $@
 
 

@@ -44,7 +44,7 @@ func (fi bindataFileInfo) Sys() interface{} {
 	return nil
 }
 
-var _misterbinMisterBinGo = []byte(`package main
+var _misterBinGo = []byte(`package main
 
 import (
 	"fmt"
@@ -395,17 +395,17 @@ func main() {
 }
 `)
 
-func misterbinMisterBinGoBytes() ([]byte, error) {
-	return _misterbinMisterBinGo, nil
+func misterBinGoBytes() ([]byte, error) {
+	return _misterBinGo, nil
 }
 
-func misterbinMisterBinGo() (*asset, error) {
-	bytes, err := misterbinMisterBinGoBytes()
+func misterBinGo() (*asset, error) {
+	bytes, err := misterBinGoBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "misterbin/mister-bin.go", size: 7953, mode: os.FileMode(420), modTime: time.Unix(1451461986, 0)}
+	info := bindataFileInfo{name: "mister-bin.go", size: 7953, mode: os.FileMode(420), modTime: time.Unix(1451461986, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -462,7 +462,7 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"misterbin/mister-bin.go": misterbinMisterBinGo,
+	"mister-bin.go": misterBinGo,
 }
 
 // AssetDir returns the file names below a certain
@@ -505,9 +505,7 @@ type bintree struct {
 	Children map[string]*bintree
 }
 var _bintree = &bintree{nil, map[string]*bintree{
-	"misterbin": &bintree{nil, map[string]*bintree{
-		"mister-bin.go": &bintree{misterbinMisterBinGo, map[string]*bintree{
-		}},
+	"mister-bin.go": &bintree{misterBinGo, map[string]*bintree{
 	}},
 }}
 

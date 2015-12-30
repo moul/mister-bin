@@ -1,5 +1,6 @@
 #BINARY = ./test/darwin-x86_64-helloworld-dynamic
 BINARY = ./test/linux-x86_64-helloworld-static
+MISTERBIN_DIR = ./misterbin
 
 
 .PHONY: build
@@ -10,13 +11,13 @@ $(BINARY):
 	cd test; $(MAKE)
 
 
-bindata.go: $(BINARY)
+$(MISTERBIN_DIR)/bindata.go: $(BINARY)
 	go get github.com/jteeuwen/go-bindata/...
-	go-bindata $(BINARY)
+	go-bindata -o ./$@ $(BINARY)
 
 
-mister-bin: mister-bin.go bindata.go
-	go build -o mister-bin .
+mister-bin: $(MISTERBIN_DIR)/mister-bin.go $(MISTERBIN_DIR)/bindata.go
+	go build -o ./mister-bin ./$(MISTERBIN_DIR)
 
 
 .PHONY: test
@@ -32,8 +33,8 @@ docker: docker/mister-bin docker/Dockerfile
 	docker export `docker create mister-bin /dont-exists` | tar -tvf -
 
 
-docker/mister-bin: mister-bin.go bindata.go
-	goxc -bc="linux,386" -d=docker -o="{{.Dest}}{{.PS}}{{.ExeName}}{{.Ext}}" -include="" compile
+docker/mister-bin: $(MISTERBIN_DIR)/mister-bin.go $(MISTERBIN_DIR)/bindata.go
+	cd $(MISTERBIN_DIR); goxc -bc="linux,386" -d=../docker -n=mister-bin -o="{{.Dest}}{{.PS}}{{.ExeName}}{{.Ext}}" -include="" compile
 
 
 .PHONY: clean

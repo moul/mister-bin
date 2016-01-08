@@ -1,14 +1,14 @@
 #BINARY = ./test/darwin-x86_64-helloworld-dynamic
 BINARY = ./test/linux-x86_64-helloworld-static
-MISTERBIN_DIR = ./misterbin
-MISTERBUILD_DIR = ./misterbuild
+MISTERBIN_DIR = ./cmd/misterbin
+MISTERBUILD_DIR = ./cmd/misterbuild
 
 
 .PHONY: build
-build: builder mister-bin
+build: misterbin misterbuild
 
 
-builder: $(MISTERBUILD_DIR)/mister-build.go $(MISTERBUILD_DIR)/bindata.go
+misterbuild: $(MISTERBUILD_DIR)/mister-build.go $(MISTERBUILD_DIR)/bindata.go
 	go build -o ./$@ ./$(MISTERBUILD_DIR)
 
 
@@ -28,27 +28,27 @@ $(MISTERBIN_DIR)/bindata.go: $(BINARY)
 	ls -la $@
 
 
-mister-bin: $(MISTERBIN_DIR)/mister-bin.go $(MISTERBIN_DIR)/bindata.go
+misterbin: $(MISTERBIN_DIR)/mister-bin.go $(MISTERBIN_DIR)/bindata.go
 	go build -o ./$@ ./$(MISTERBIN_DIR)
 
 
 .PHONY: test
-test: mister-bin
-	./mister-bin -h || true
-	./mister-bin $(notdir $(BINARY))
+test: misterbin
+	./misterbin -h || true
+	./misterbin $(notdir $(BINARY))
 
 
 .PHONY: docker
-docker: docker/mister-bin docker/Dockerfile
-	docker build --no-cache -t mister-bin docker
-	docker run -it --rm mister-bin /bin/$(notdir $(BINARY))
-	docker export `docker create mister-bin /dont-exists` | tar -tvf -
+docker: docker/misterbin docker/Dockerfile
+	docker build --no-cache -t misterbin docker
+	docker run -it --rm misterbin /bin/$(notdir $(BINARY))
+	docker export `docker create misterbin /dont-exists` | tar -tvf -
 
 
-docker/mister-bin: $(MISTERBIN_DIR)/mister-bin.go $(MISTERBIN_DIR)/bindata.go
-	cd $(MISTERBIN_DIR); goxc -bc="linux,386" -d=../docker -n=mister-bin -o="{{.Dest}}{{.PS}}{{.ExeName}}{{.Ext}}" -include="" compile
+docker/misterbin: $(MISTERBIN_DIR)/mister-bin.go $(MISTERBIN_DIR)/bindata.go
+	cd $(MISTERBIN_DIR); goxc -bc="linux,386" -d=../docker -n=misterbin -o="{{.Dest}}{{.PS}}{{.ExeName}}{{.Ext}}" -include="" compile
 
 
 .PHONY: clean
 clean:
-	./mister-bin --uninstall
+	./misterbin --uninstall

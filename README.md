@@ -6,10 +6,9 @@ An attempt to address [moul/random-ideas#5](https://github.com/moul/random-ideas
 ## Test
 
 ```console
-➜  mister-bin git:(master) ✗ make test
-go get github.com/jteeuwen/go-bindata/...
-go-bindata ./test/linux-x86_64-helloworld-static
-go build -o mister-bin .
+$ go get github.com/jteeuwen/go-bindata/...
+$ go-bindata ./test/linux-x86_64-helloworld-static
+$ go build -o mister-bin .
 ./mister-bin -h || true
 NAME:
    Mister Bin - A new cli application
@@ -23,15 +22,14 @@ COMMANDS:
    linux-x86_64-helloworld-static
    help, h                             Shows a list of commands or help for one command
 
-./mister-bin ./test/linux-x86_64-helloworld-static
+$ ./mister-bin ./test/linux-x86_64-helloworld-static
 No help topic for './test/linux-x86_64-helloworld-static'
 ```
 
 ## Docker
 
 ```console
-$ make docker
-docker build --no-cache -t mister-bin docker
+$ docker build --no-cache -t mister-bin docker
 Sending build context to Docker daemon     4 MB
 Step 1 : FROM scratch
 --->
@@ -43,9 +41,9 @@ Step 3 : RUN /bin/sh install --basedir=/bin --symlinks
 ---> cb0f90aee30d
 Removing intermediate container 9943e91ccd0a
 Successfully built cb0f90aee30d
-docker run -it --rm mister-bin /bin/linux-x86_64-helloworld-static
+$ docker run -it --rm mister-bin /bin/linux-x86_64-helloworld-static
 Hello World !
-docker export `docker create mister-bin /dont-exists` | tar -tvf -
+$ docker export `docker create mister-bin /dont-exists` | tar -tvf -
 -rwxr-xr-x  0 0      0           0 Dec 28 17:56 .dockerenv
 -rwxr-xr-x  0 0      0           0 Dec 28 17:56 .dockerinit
 drwxr-xr-x  0 0      0           0 Dec 28 17:56 bin/

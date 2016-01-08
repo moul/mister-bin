@@ -3,6 +3,63 @@
 
 An attempt to address [moul/random-ideas#5](https://github.com/moul/random-ideas/issues/5) and [moul/random-ideas#6](https://github.com/moul/random-ideas/issues/6).
 
+## Usage
+
+### `misterbuild`
+
+```console
+$ misterbuild
+NAME:
+   Mister Build - mister-bin builder
+
+USAGE:
+   misterbuild [global options] command [command options] [arguments...]
+
+VERSION:
+   0.0.0
+
+COMMANDS:
+   build
+   help, h	Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --help, -h		show help
+   --version, -v	print the version
+```
+
+### `misterbin`
+
+An example of generated `misterbin`
+
+```console
+$ misterbin
+NAME:
+   Mister Bin - A new cli application
+
+USAGE:
+   misterbin [global options] command [command options] [arguments...]
+
+VERSION:
+   0.0.0
+
+COMMANDS:
+   install
+   uninstall
+   custom-binary-a
+   custom-binary-b
+   custom-binary-c
+   custom-binary-d
+   custom-binary-e
+   ...
+   custom-binary-z
+   help, h				Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --debug, -D		 [$MB_DEBUG]
+   --help, -h		show help
+   --version, -v	print the version
+```
+
 ## Test
 
 ```console

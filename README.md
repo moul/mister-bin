@@ -1,4 +1,7 @@
 # mister-bin
+
+[![GuardRails badge](https://badges.production.guardrails.io/moul/mister-bin.svg)](https://www.guardrails.io)
+
 :sparkles: Binaries + Steroids = Abracadabra !
 
 An attempt to address [moul/random-ideas#5](https://github.com/moul/random-ideas/issues/5) and [moul/random-ideas#6](https://github.com/moul/random-ideas/issues/6).
